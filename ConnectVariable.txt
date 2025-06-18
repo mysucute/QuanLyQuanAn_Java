@@ -1,0 +1,4 @@
+localhost
+quanlypizza
+root
+123456

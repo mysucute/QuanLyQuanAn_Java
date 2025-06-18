@@ -1,0 +1,200 @@
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv02 đã tham gia
+SYSTEM -> all: nv03 đã tham gia
+nv02 -> all: <=
+nv01 -> all: ;?
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv03 đã rời
+SYSTEM -> all: nv03 đã tham gia
+SYSTEM -> all: nv03 đã tham gia
+SYSTEM -> all: nv03 đã rời
+SYSTEM -> all: nv03 đã rời
+SYSTEM -> all: nv03 đã tham gia
+SYSTEM -> all: nv03 đã rời
+SYSTEM -> all: nv03 đã tham gia
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv02 đã tham gia
+nv01 -> all: <=
+nv01 -> all: <=
+nv01 -> all: <=
+SYSTEM -> all: nv03 đã rời
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv02 đã tham gia
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv03 đã tham gia
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv03 đã rời
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv03 đã tham gia
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv02 đã tham gia
+SYSTEM -> all: nv03 đã rời
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv02 đã tham gia
+SYSTEM -> all: nv03 đã tham gia
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv03 đã rời
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv02 đã tham gia
+SYSTEM -> all: nv03 đã tham gia
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv03 đã rời
+SYSTEM -> all: nv03 đã tham gia
+SYSTEM -> all: nv02 đã tham gia
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv03 đã rời
+SYSTEM -> all: nv03 đã tham gia
+SYSTEM -> all: nv02 đã tham gia
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv03 đã rời
+SYSTEM -> all: nv03 đã tham gia
+SYSTEM -> all: nv02 đã tham gia
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv03 đã rời
+SYSTEM -> all: nv01 đã tham gia [02:08:40]
+SYSTEM -> all: nv02 đã tham gia [02:08:53]
+SYSTEM -> all: nv03 đã tham gia [02:09:07]
+SYSTEM -> all: nv01 đã rời [02:10:56]
+SYSTEM -> all: nv02 đã rời [02:10:58]
+SYSTEM -> all: nv03 đã rời [02:10:59]
+SYSTEM -> all: nv02 đã tham gia [02:15:48]
+SYSTEM -> all: nv01 đã tham gia [02:15:57]
+SYSTEM -> all: nv01 đã rời [02:16:12]
+SYSTEM -> all: nv02 đã rời [02:16:15]
+SYSTEM -> all: nv01 đã tham gia [02:20:18]
+SYSTEM -> all: nv02 đã tham gia [02:20:24]
+SYSTEM -> all: nv02 đã rời [02:21:38]
+SYSTEM -> all: nv01 đã rời [02:21:39]
+SYSTEM -> all: nv02 đã tham gia [02:23:25]
+SYSTEM -> all: nv01 đã tham gia [02:23:29]
+SYSTEM -> all: nv02 đã rời [02:23:29]
+SYSTEM -> all: nv01 đã rời [02:23:38]
+SYSTEM -> all: nv01 đã tham gia [02:31:18]
+SYSTEM -> all: nv02 đã tham gia [02:31:22]
+SYSTEM -> all: nv01 đã rời [02:31:38]
+SYSTEM -> all: nv02 đã rời [02:31:41]
+SYSTEM -> all: nv02 đã tham gia
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv01 đã tham gia [02:33:34]
+SYSTEM -> all: nv02 đã tham gia [02:33:38]
+SYSTEM -> all: nv01 đã rời [02:33:56]
+SYSTEM -> all: nv02 đã rời [02:33:56]
+SYSTEM -> all: nv02 đã tham gia [02:40:39]
+SYSTEM -> all: nv01 đã tham gia [02:40:43]
+SYSTEM -> all: nv02 đã rời [02:40:43]
+SYSTEM -> all: nv01 đã rời [02:41:37]
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv02 đã tham gia
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv02 đã tham gia
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv02 đã tham gia
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv02 đã tham gia
+SYSTEM -> all: nv01 đã tham gia
+nv01 -> all: <18;
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv03 đã tham gia
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv02 đã tham gia
+nv02 -> all: <=
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv03 đã rời
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv02 đã tham gia
+SYSTEM -> all: nv03 đã tham gia
+nv01 -> all: elnt<=
+SYSTEM -> all: nv03 đã rời
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv03 đã tham gia
+SYSTEM -> all: nv02 đã tham gia
+SYSTEM -> all: nv01 đã tham gia
+nv01 -> all: elnt<=
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv03 đã rời
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv02 đã tham gia
+SYSTEM -> all: nv03 đã tham gia
+SYSTEM -> all: nv03 đã rời
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv02 đã tham gia
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv02 đã tham gia
+SYSTEM -> all: nv02 đã tham gia
+SYSTEM -> all: nv01 đã tham gia
+nv02 -> all: <=
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv02 đã tham gia
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv02 đã tham gia
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv02 đã tham gia
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv02 đã tham gia
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv02 đã tham gia
+nv01 -> all: <=
+SYSTEM -> all: nv03 đã tham gia
+nv01 -> all: 😂
+nv02 -> all: 8;
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv03 đã rời
+SYSTEM -> all: nv02 đã tham gia
+SYSTEM -> all: nv01 đã tham gia
+nv01 -> all: <=
+nv02 -> all: ;?
+SYSTEM -> all: nv03 đã tham gia
+nv01 -> all: 😂
+SYSTEM -> all: nv03 đã rời
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv02 đã tham gia
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv02 đã tham gia
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv02 đã tham gia
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv02 đã rời
