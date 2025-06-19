@@ -198,3 +198,205 @@ SYSTEM -> all: nv02 đã tham gia
 SYSTEM -> all: nv01 đã tham gia
 SYSTEM -> all: nv01 đã rời
 SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: admin đã tham gia
+SYSTEM -> all: admin đã rời
+SYSTEM -> all: nv02 đã tham gia
+SYSTEM -> all: nv01 đã tham gia
+nv01 -> all: <=
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv02 đã tham gia
+nv02 -> all: <=
+nv01 -> all: ;?
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv02 đã tham gia
+SYSTEM -> all: nv01 đã tham gia
+nv01 -> all: <=
+nv02 -> all: ;?
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv02 đã tham gia
+nv01 -> all: <=
+nv02 -> all: ;?
+nv02 -> all: 😎
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv02 đã tham gia
+SYSTEM -> all: nv01 đã tham gia
+nv02 -> all: <=
+nv01 -> all: ;?
+nv02 -> all: <1?8;
+nv02 -> all: 😎
+nv01 -> all: 😍
+SYSTEM -> all: nv03 đã tham gia
+nv03 -> all: <=
+nv03 -> all: 58=;
+nv01 -> all: <=
+nv02 -> all: ;?
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv03 đã rời
+SYSTEM -> all: nv02 đã tham gia
+SYSTEM -> all: nv01 đã tham gia
+nv01 -> all: <=
+nv02 -> all: ;?
+nv01 -> all: '5;
+nv01 -> all: 😎
+nv02 -> all: 😍
+SYSTEM -> all: nv03 đã tham gia
+nv03 -> all: ¾
+nv03 -> all: ¾
+nv01 -> all: 88
+SYSTEM -> all: nv03 đã rời
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv02 đã tham gia
+SYSTEM -> all: nv01 đã tham gia
+nv01 -> 18: <=
+nv02 -> 4: <=
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv02 đã tham gia
+nv01 -> 18: <=
+nv02 -> 4: <=
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv02 đã tham gia
+SYSTEM -> all: nv01 đã tham gia
+nv01 -> all: <=
+nv02 -> all: ;?
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv02 đã tham gia
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv02 đã tham gia
+SYSTEM -> all: admin đã tham gia
+admin -> all: ¾
+nv02 -> all: 0ỵ
+admin -> all: 😎
+nv02 -> all: 😎
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: admin đã rời
+SYSTEM -> all: admin đã tham gia
+SYSTEM -> all: admin đã rời
+SYSTEM -> all: admin đã tham gia
+SYSTEM -> all: nv01 đã tham gia
+nv01 -> all: <=
+admin -> all: ;?
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: admin đã rời
+SYSTEM -> all: admin đã tham gia
+SYSTEM -> all: nv01 đã tham gia
+admin -> all: <=
+nv01 -> all: ;?
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: admin đã rời
+SYSTEM -> all: admin đã tham gia
+SYSTEM -> all: admin đã rời
+SYSTEM -> all: admin đã tham gia
+SYSTEM -> all: nv01 đã tham gia
+admin -> all: <=
+nv01 -> all: ;?
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: admin đã rời
+SYSTEM -> all: admin đã tham gia
+SYSTEM -> all: nv01 đã tham gia
+admin -> all: <=
+nv01 -> all: '5;t95-
+admin -> all: 😊
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: admin đã rời
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: admin đã tham gia
+admin -> all: <=
+nv01 -> all: ;?
+admin -> all: Ņ=t,19t?<µ7<tŅ=t19k
+nv01 -> all: 0ỵt19t6=ừ t&ẇ=t'ừ$
+nv01 -> all: 😉
+admin -> all: 😅
+SYSTEM -> all: admin đã rời
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv01 đã tham gia
+nv01 -> all: 😎
+SYSTEM -> all: admin đã tham gia
+nv01 -> all: <=
+admin -> all: ;?
+nv01 -> all: ;?
+admin -> all: 😂
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: admin đã rời
+SYSTEM -> all: admin đã tham gia
+SYSTEM -> all: nv01 đã tham gia
+admin -> all: <=
+nv01 -> all: ;?
+admin -> all: 😁
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: admin đã rời
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: admin đã tham gia
+admin -> all: <=
+nv01 -> all: 😁
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: admin đã rời
+SYSTEM -> all: admin đã tham gia
+SYSTEM -> all: nv01 đã tham gia
+admin -> all: <=
+nv01 -> all: ;?
+SYSTEM -> all: admin đã rời
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv01 đã tham gia
+nv01 -> all: 😎
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: admin đã tham gia
+nv01 -> all: <=
+admin -> all: 😎
+nv01 -> all: 😁
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: admin đã rời
+SYSTEM -> all: admin đã tham gia
+SYSTEM -> all: admin đã rời
+SYSTEM -> all: nv01 đã tham gia
+SYSTEM -> all: admin đã tham gia
+nv01 -> all: <=
+admin -> all: ;?
+nv01 -> all: 😁
+SYSTEM -> all: nv02 đã tham gia
+nv01 -> all: <=
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: admin đã rời
+SYSTEM -> all: nv01 đã rời
+SYSTEM -> all: nv02 đã tham gia
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv02 đã tham gia
+SYSTEM -> all: nv02 đã rời
+SYSTEM -> all: nv02 đã tham gia
+SYSTEM -> all: nv02 đã rời

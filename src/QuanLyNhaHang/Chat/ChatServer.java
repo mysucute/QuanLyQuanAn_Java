@@ -13,14 +13,14 @@ public class ChatServer {
     private static final int PORT = 5000;
     private static ServerSocket serverSocket;
     private static Map<String, ObjectOutputStream> clients = new ConcurrentHashMap<>();
-    private static Map<String, List<String>> groups = new ConcurrentHashMap<>();
-    private static Map<String, String> groupNames = new ConcurrentHashMap<>();
     private static CopyOnWriteArrayList<ClientHandler> clientHandlers = new CopyOnWriteArrayList<>();
 
     public static void main(String[] args) {
         System.out.println("Server đang khởi động...");
         try {
             serverSocket = new ServerSocket(PORT);
+            // Bật tùy chọn SO_REUSEADDR để tái sử dụng cổng ngay lập tức
+            serverSocket.setReuseAddress(true);
             System.out.println("Server đã khởi động trên cổng " + PORT);
 
             while (true) {
@@ -39,7 +39,7 @@ public class ChatServer {
 
     private static void broadcastMessage(Message msg, ClientHandler sender) throws IOException {
         for (ClientHandler client : clientHandlers) {
-            if (client != sender && clients.containsKey(client.getUsername())) {
+            if (clients.containsKey(client.getUsername())) {
                 synchronized (client.getOut()) {
                     client.getOut().writeObject(msg);
                     client.getOut().flush();
@@ -50,15 +50,25 @@ public class ChatServer {
     }
 
     private static void sendPrivateMessage(String targetUsername, Message msg, ClientHandler sender) throws IOException {
-        System.out.println("Sending private msg to " + targetUsername + ": " + msg.getContent());
-        ObjectOutputStream writer = clients.get(targetUsername);
-        if (writer != null) {
-            synchronized (writer) {
-                writer.writeObject(msg);
-                writer.flush();
+        System.out.println("Sending private msg to " + targetUsername + " from " + sender.getUsername() + ": " + msg.getContent());
+        ObjectOutputStream targetWriter = clients.get(targetUsername);
+        ObjectOutputStream senderWriter = sender.getOut(); // Lấy output stream của người gửi
+
+        if (targetWriter != null && !targetUsername.equals(sender.getUsername())) { // Không gửi lại cho người gửi nếu là chính mình
+            synchronized (targetWriter) {
+                targetWriter.writeObject(msg);
+                targetWriter.flush();
             }
-            saveMessage(targetUsername, msg.getSender(), msg.getContent());
         }
+        if (senderWriter != null && !targetUsername.equals(sender.getUsername())) { // Chỉ echo nếu gửi cho người khác
+            Message senderEcho = new Message(Message.Type.TEXT, "SYSTEM", "system", 
+                "SENT: Bạn (riêng cho " + targetUsername + "): " + (msg.getContent() != null ? msg.getContent() : "[Media]"));
+            synchronized (senderWriter) {
+                senderWriter.writeObject(senderEcho);
+                senderWriter.flush();
+            }
+        }
+        saveMessage(targetUsername, msg.getSender(), msg.getContent());
     }
 
     private static void saveMessage(String receiver, String sender, String content) {
@@ -97,6 +107,8 @@ public class ChatServer {
             for (ClientHandler handler : clientHandlers) {
                 handler.shutdownConnection();
             }
+            clients.clear(); // Xóa tất cả client khỏi map
+            clientHandlers.clear(); // Xóa tất cả client handler
         } catch (IOException e) {
             System.out.println("Lỗi khi tắt server: " + e.getMessage());
         }
@@ -159,16 +171,6 @@ public class ChatServer {
                     msg.setRole(role);
                     System.out.println("Nhận tin nhắn từ " + username + ": " + msg.getContent());
                     switch (msg.getType()) {
-                        case CREATE_GROUP:
-                            if (role.equals("admin")) {
-                                createGroup(msg);
-                            } else {
-                                out.writeObject(new Message(Type.TEXT, "SYSTEM", "system", "ERROR: Chỉ admin có thể tạo nhóm"));
-                            }
-                            break;
-                        case GROUP_MESSAGE:
-                            forwardGroupMessage(msg);
-                            break;
                         case TEXT:
                         case IMAGE:
                         case FILE:
@@ -202,64 +204,6 @@ public class ChatServer {
             } finally {
                 shutdownConnection();
             }
-        }
-
-        private void createGroup(Message msg) throws IOException {
-            String groupInfo = msg.getContent();
-            String[] parts = groupInfo.split(",", 2);
-            if (parts.length < 2) {
-                System.out.println("Invalid group creation request: " + groupInfo);
-                return;
-            }
-
-            String groupName = parts[0];
-            String[] members = parts[1].split(",");
-            List<String> memberList = new ArrayList<>();
-            for (String member : members) {
-                memberList.add(member.trim());
-            }
-
-            String groupId = "group_" + System.currentTimeMillis();
-            groups.put(groupId, memberList);
-            groupNames.put(groupId, groupName);
-
-            Message groupCreatedMsg = new Message(Type.CREATE_GROUP, msg.getSender(), role, groupName + "," + String.join(",", memberList));
-            groupCreatedMsg.setGroupId(groupId);
-
-            for (String member : memberList) {
-                ObjectOutputStream memberOut = clients.get(member);
-                if (memberOut != null) {
-                    memberOut.writeObject(groupCreatedMsg);
-                    memberOut.flush();
-                }
-            }
-            System.out.println("Group created: " + groupName + " (ID: " + groupId + ") with members: " + memberList);
-        }
-
-        private void forwardGroupMessage(Message msg) throws IOException {
-            String groupId = msg.getGroupId();
-            List<String> members = groups.get(groupId);
-
-            if (members == null) {
-                System.out.println("Group not found: " + groupId);
-                return;
-            }
-
-            Message groupMsg = new Message(Message.Type.GROUP_MESSAGE, msg.getSender(), msg.getRole(), msg.getContent(), msg.getData(), msg.getFileName(), msg.isEncrypted());
-            groupMsg.setGroupId(groupId);
-            groupMsg.setOriginalType(msg.getType()); // Set originalType
-            groupMsg.setTimestamp(LocalTime.now());
-
-            for (String member : members) {
-                if (!member.equals(msg.getSender())) {
-                    ObjectOutputStream memberOut = clients.get(member);
-                    if (memberOut != null) {
-                        memberOut.writeObject(groupMsg);
-                        memberOut.flush();
-                    }
-                }
-            }
-            System.out.println("Group message forwarded to group " + groupId + " from " + msg.getSender());
         }
 
         private void loadChatHistory(ClientHandler client) {

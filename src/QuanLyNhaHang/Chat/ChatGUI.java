@@ -15,6 +15,8 @@ import java.awt.event.*;
 import java.io.*;
 import java.net.Socket;
 import java.nio.file.Files;
+
+import javax.imageio.ImageIO;
 import javax.sound.sampled.*;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -26,6 +28,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Arrays;
+import com.github.sarxos.webcam.Webcam;
+import java.awt.image.BufferedImage;
 
 // Assume this class provides user data from the taikhoan table
 import QuanLyNhaHang.BUS.TaiKhoanBUS;
@@ -54,6 +58,8 @@ public class ChatGUI extends JFrame {
     private TargetDataLine targetDataLine;
     private Thread recordingThread;
     private TaiKhoanBUS taiKhoanBUS;
+    
+    private volatile boolean isRunning = true;
 
     public ChatGUI(String username, String role) {
         this.currentUser = username;
@@ -66,14 +72,18 @@ public class ChatGUI extends JFrame {
             return;
         }
 
-        setTitle("Chat - " + username + " (" + role + ")");
+        TaiKhoan currentAccount = taiKhoanBUS.getTaiKhoanByMaNV(username);
+        String displayName = currentAccount != null && currentAccount.getTen() != null ? currentAccount.getTen() : username;
+        String userRole = currentAccount != null ? currentAccount.getQuyen() : role;
+        setTitle("Chat - " + displayName + " (" + userRole + ")");
         setSize(600, 700);
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE); // Đóng cửa sổ sẽ gọi dispose()
         setLocationRelativeTo(null);
         buildUI();
 
+        // Khởi động luồng nhận tin nhắn
         new Thread(() -> {
-            while (true) {
+            while (isRunning) { // Sử dụng flag để kiểm soát
                 try {
                     Message msg = chatClient.receiveMessage();
                     if (msg != null) {
@@ -82,7 +92,7 @@ public class ChatGUI extends JFrame {
                     }
                 } catch (Exception e) {
                     System.out.println("Lỗi nhận tin nhắn: " + e.getMessage());
-                    break;
+                    break; // Thoát luồng nếu có lỗi
                 }
             }
         }).start();
@@ -183,22 +193,37 @@ public class ChatGUI extends JFrame {
                 }
             }
         });
+
+        // Thêm CSS vào chatPane
+        HTMLDocument doc = (HTMLDocument) chatPane.getDocument();
+        HTMLEditorKit kit = (HTMLEditorKit) chatPane.getEditorKit();
+        try {
+            kit.insertHTML(doc, doc.getLength(), "<style>" +
+                    ".message-left { text-align: left; margin: 5px; padding: 5px; background-color: #e0e0e0; border-radius: 5px; display: inline-block; }" +
+                    ".message-right { text-align: right; margin: 5px; padding: 5px; background-color: #DCF8C6; border-radius: 5px; display: inline-block; }" +
+                    ".time { font-size: 0.8em; color: #888; }" +
+                    "</style>", 0, 0, null);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         JScrollPane chatScrollPane = new JScrollPane(chatPane);
         mainPanel.add(chatScrollPane, BorderLayout.CENTER);
 
         JPanel inputPanel = new JPanel(new BorderLayout());
         inputField = new JTextField();
         inputField.addActionListener(e -> sendTextMessage());
-        sendBtn = new JButton("Gửi");
-        mediaBtn = new JButton("Media");
-        iconBtn = new JButton("Icon");
-        createGroupBtn = new JButton("Tạo nhóm");
-        recordBtn = new JButton("Ghi âm");
+        sendBtn = new JButton("➤"); // Send icon
+        mediaBtn = new JButton("📂"); // Media icon
+        iconBtn = new JButton("😀"); // Icon/Emoji icon
+        createGroupBtn = new JButton("📸"); // Camera icon
+        createGroupBtn.setToolTipText("Chụp ảnh từ webcam");
+        recordBtn = new JButton("🎙️"); // Record icon
 
         sendBtn.addActionListener(e -> sendTextMessage());
         mediaBtn.addActionListener(e -> sendMediaMessage());
         iconBtn.addActionListener(e -> chooseAndSendIcon());
-        createGroupBtn.addActionListener(e -> createGroup());
+        createGroupBtn.addActionListener(e -> captureAndSendPhoto());
         recordBtn.addActionListener(e -> {
             if (!isRecording) startRecording();
             else stopRecording();
@@ -220,16 +245,23 @@ public class ChatGUI extends JFrame {
 
     private void loadConversationList() {
         conversationListModel.clear();
+        Set<String> uniqueDisplayNames = new HashSet<>();
         for (String userId : conversations.keySet()) {
-            if (!userId.equals(currentUser)) { // Include groups and other users
-                String displayName = conversationNames.getOrDefault(userId, userId);
-                if (!conversationListModel.contains(displayName)) {
-                    conversationListModel.addElement(displayName);
-                    displayNameToId.putIfAbsent(displayName, userId);
+            if (!userId.equals(currentUser)) {
+                TaiKhoan tk = taiKhoanBUS.getTaiKhoanByMaNV(userId);
+                if (tk != null) {
+                    String fullName = tk.getTen() != null ? tk.getTen() : tk.getTenDangNhap();
+                    String userQuyen = tk.getQuyen();
+                    String displayName = fullName + " (" + userQuyen + ")";
+                    if (!uniqueDisplayNames.contains(displayName)) {
+                        conversationListModel.addElement(displayName);
+                        displayNameToId.putIfAbsent(displayName, userId);
+                        uniqueDisplayNames.add(displayName);
+                    }
                 }
             }
         }
-        // Load from chat_history.txt for users not in conversations map
+        // Load from chat_history.txt
         try (BufferedReader reader = new BufferedReader(new FileReader("chat_history.txt"))) {
             String line;
             Set<String> users = new HashSet<>();
@@ -239,26 +271,22 @@ public class ChatGUI extends JFrame {
                     if (parts.length >= 2) {
                         String sender = parts[0].trim();
                         String receiver = parts[1].split(":")[0].trim();
-                        if (sender.equals(currentUser) && !receiver.equals("all") && !users.contains(receiver)) {
-                            TaiKhoan tk = taiKhoanBUS.getTaiKhoanByMaNV(receiver);
-                            String displayName = tk != null ? tk.getTen() : receiver;
-                            if (!conversationListModel.contains(displayName)) {
-                                conversationListModel.addElement(displayName);
-                                displayNameToId.putIfAbsent(displayName, receiver);
-                                conversationNames.putIfAbsent(receiver, displayName);
-                                conversations.putIfAbsent(receiver, new ArrayList<>());
+                        String target = sender.equals(currentUser) ? receiver : sender;
+                        if (!target.equals(currentUser) && !users.contains(target)) {
+                            TaiKhoan tk = taiKhoanBUS.getTaiKhoanByMaNV(target);
+                            if (tk != null) {
+                                String fullName = tk.getTen() != null ? tk.getTen() : tk.getTenDangNhap();
+                                String userQuyen = tk.getQuyen();
+                                String displayName = fullName + " (" + userQuyen + ")";
+                                if (!uniqueDisplayNames.contains(displayName)) {
+                                    conversationListModel.addElement(displayName);
+                                    displayNameToId.putIfAbsent(displayName, target);
+                                    conversationNames.putIfAbsent(target, fullName);
+                                    conversations.putIfAbsent(target, new ArrayList<>());
+                                    uniqueDisplayNames.add(displayName);
+                                }
+                                users.add(target);
                             }
-                            users.add(receiver);
-                        } else if (receiver.equals(currentUser) && !users.contains(sender)) {
-                            TaiKhoan tk = taiKhoanBUS.getTaiKhoanByMaNV(sender);
-                            String displayName = tk != null ? tk.getTen() : sender;
-                            if (!conversationListModel.contains(displayName)) {
-                                conversationListModel.addElement(displayName);
-                                displayNameToId.putIfAbsent(displayName, sender);
-                                conversationNames.putIfAbsent(sender, displayName);
-                                conversations.putIfAbsent(sender, new ArrayList<>());
-                            }
-                            users.add(sender);
                         }
                     }
                 }
@@ -268,22 +296,29 @@ public class ChatGUI extends JFrame {
         }
         if (!conversationListModel.isEmpty()) {
             conversationList.setSelectedIndex(0);
+            String selectedUserName = (String) conversationList.getSelectedValue();
+            currentConversation = displayNameToId.get(selectedUserName);
+            displayConversation(currentConversation);
         }
     }
 
     private void loadAvailableUsers() {
         try {
             List<TaiKhoan> users = taiKhoanBUS.getAllTaiKhoan();
+            Set<String> uniqueDisplayNames = new HashSet<>(); // Sử dụng Set để tránh trùng lặp
             userComboBox.removeAllItems();
             for (TaiKhoan tk : users) {
                 String userId = String.valueOf(tk.getMaNhanVien());
                 if (!userId.equals(currentUser)) {
-                    String fullName = tk.getTen();
-                    if (fullName != null && !fullName.isEmpty() && !containsItem(userComboBox, fullName)) {
-                        userComboBox.addItem(fullName);
-                        displayNameToId.putIfAbsent(fullName, userId);
+                    String fullName = tk.getTen() != null ? tk.getTen() : tk.getTenDangNhap();
+                    String userQuyen = tk.getQuyen();
+                    String displayName = fullName + " (" + userQuyen + ")";
+                    if (!uniqueDisplayNames.contains(displayName)) {
+                        userComboBox.addItem(displayName);
+                        displayNameToId.put(displayName, userId);
                         conversationNames.putIfAbsent(userId, fullName);
                         conversations.putIfAbsent(userId, new ArrayList<>());
+                        uniqueDisplayNames.add(displayName);
                     }
                 }
             }
@@ -410,7 +445,7 @@ public class ChatGUI extends JFrame {
                 String targetUserId = displayNameToId.get(selectedUserName);
                 if (targetUserId != null && !targetUserId.equals(currentUser)) {
                     Message msg = new Message(msgType, currentUser, role, null, dataToSend, fileName, isEncrypted);
-                    msg.setGroupId(targetUserId); // Use groupId for 1-1 messaging
+                    msg.setGroupId(targetUserId); // Định tuyến chính xác
                     conversations.computeIfAbsent(targetUserId, k -> new ArrayList<>()).add(msg);
                     conversationNames.putIfAbsent(targetUserId, selectedUserName);
                     if (!conversationListModel.contains(selectedUserName)) {
@@ -462,37 +497,139 @@ public class ChatGUI extends JFrame {
         popup.show(iconBtn, -100, -popup.getPreferredSize().height);
     }
 
-    private void createGroup() {
-        if (!role.equals("admin")) {
-            JOptionPane.showMessageDialog(this, "Chỉ admin có thể tạo nhóm!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+    private void captureAndSendPhoto() {
+        if (userComboBox.getSelectedItem() == null) {
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn người nhận!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             return;
         }
-        List<String> selectedUsers = new ArrayList<>();
-        for (String name : displayNameToId.keySet()) {
-            if (!name.equals(currentUser)) {
-                selectedUsers.add(displayNameToId.get(name));
-            }
-        }
-        JTextField groupNameField = new JTextField(20);
-        JPanel panel = new JPanel(new GridLayout(1, 0));
-        panel.add(new JLabel("Tên nhóm:"));
-        panel.add(groupNameField);
-        if (JOptionPane.showConfirmDialog(this, panel, "Tạo nhóm", JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
-            String groupName = groupNameField.getText().trim();
-            if (groupName.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Tên nhóm không được để trống!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+
+        try {
+            Webcam webcam = Webcam.getDefault();
+            if (webcam == null) {
+                JOptionPane.showMessageDialog(this, "Không tìm thấy webcam! Vui lòng kiểm tra kết nối hoặc quyền truy cập.", "Lỗi", JOptionPane.ERROR_MESSAGE);
                 return;
             }
-            String groupId = "group_" + System.currentTimeMillis();
-            String groupInfo = groupName + "," + String.join(",", selectedUsers);
-            Message msg = new Message(Message.Type.CREATE_GROUP, currentUser, role, groupInfo);
-            msg.setGroupId(groupId);
-            conversations.putIfAbsent(groupId, new ArrayList<>());
-            conversationNames.put(groupId, groupName);
-            displayNameToId.put(groupName, groupId);
-            conversationListModel.addElement(groupName);
-            chatClient.sendMessage(msg);
-            JOptionPane.showMessageDialog(this, "Nhóm '" + groupName + "' đã được tạo!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+
+            // Đặt kích thước mong muốn trước khi mở webcam
+            Dimension[] supportedSizes = webcam.getViewSizes();
+            Dimension preferredSize = supportedSizes.length > 0 ? supportedSizes[supportedSizes.length - 1] : new Dimension(640, 480); // Chọn kích thước lớn nhất hoặc mặc định 640x480
+            webcam.setViewSize(preferredSize);
+
+            webcam.open();
+
+            // Tạo frame để hiển thị webcam
+            JFrame webcamFrame = new JFrame("Webcam");
+            webcamFrame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+            JLabel webcamLabel = new JLabel();
+            webcamFrame.add(webcamLabel);
+            webcamFrame.setSize(preferredSize.width, preferredSize.height);
+            webcamFrame.setLocationRelativeTo(null);
+            webcamFrame.setVisible(true);
+
+            // Tạo nút chụp ảnh
+            JButton captureButton = new JButton("Chụp ảnh");
+            webcamFrame.add(captureButton, BorderLayout.SOUTH);
+
+            // Cập nhật hình ảnh từ webcam
+            Thread webcamThread = new Thread(() -> {
+                while (webcamFrame.isVisible()) {
+                    BufferedImage image = webcam.getImage();
+                    if (image != null) {
+                        webcamLabel.setIcon(new ImageIcon(image));
+                    }
+                    try {
+                        Thread.sleep(50);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+            webcamThread.start();
+
+            captureButton.addActionListener(e -> {
+                try {
+                    BufferedImage image = webcam.getImage();
+                    if (image == null) {
+                        JOptionPane.showMessageDialog(this, "Không thể chụp ảnh!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    ImageIO.write(image, "png", baos);
+                    byte[] imageData = baos.toByteArray();
+
+                    webcam.close();
+                    webcamFrame.dispose();
+
+                    // Hỏi người dùng xem có muốn mã hóa hoặc giấu tin
+                    int choice = JOptionPane.showConfirmDialog(this, "Gửi ảnh công khai?", "Gửi ảnh", JOptionPane.YES_NO_OPTION);
+                    boolean isEncrypted = false;
+                    byte[] dataToSend = imageData;
+                    String fileName = "webcam_photo_" + System.currentTimeMillis() + ".png";
+
+                    if (choice == JOptionPane.NO_OPTION) {
+                        Object[] options = {"Mã hóa ảnh", "Giấu tin trong ảnh"};
+                        int stegoChoice = JOptionPane.showOptionDialog(this, "Mã hóa hay giấu tin?", "Chọn chế độ", 
+                            JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE, null, options, options[0]);
+                        if (stegoChoice == 0) {
+                            String keyInput = JOptionPane.showInputDialog(this, "Nhập mã khóa:");
+                            if (keyInput != null && !keyInput.isEmpty()) {
+                                dataToSend = XORUtils.xorEncrypt(imageData, keyInput.charAt(0));
+                                isEncrypted = true;
+                            }
+                        } else if (stegoChoice == 1) {
+                            JTextField messageField = new JTextField(20);
+                            JTextField passwordField = new JTextField(10);
+                            JPanel panel = new JPanel(new GridLayout(0, 1));
+                            panel.add(new JLabel("Thông điệp cần giấu:"));
+                            panel.add(messageField);
+                            panel.add(new JLabel("Mật khẩu:"));
+                            panel.add(passwordField);
+                            if (JOptionPane.showConfirmDialog(this, panel, "Giấu tin", JOptionPane.OK_CANCEL_OPTION) == JOptionPane.OK_OPTION) {
+                                String hiddenMessage = messageField.getText().trim();
+                                String password = passwordField.getText().trim();
+                                if (hiddenMessage.isEmpty() || password.isEmpty()) {
+                                    JOptionPane.showMessageDialog(this, "Thông điệp và mật khẩu không được để trống!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                                    return;
+                                }
+                                try {
+                                    dataToSend = Steganography.hideMessage(imageData, hiddenMessage, password);
+                                    isEncrypted = true;
+                                    String imageId = "image_" + System.currentTimeMillis();
+                                    encryptedImageMap.put(imageId, dataToSend);
+                                } catch (IOException ex) {
+                                    JOptionPane.showMessageDialog(this, "Lỗi khi giấu tin: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                                    return;
+                                }
+                            }
+                        }
+                    }
+
+                    String selectedUserName = (String) userComboBox.getSelectedItem();
+                    String targetUserId = displayNameToId.get(selectedUserName);
+                    if (targetUserId != null && !targetUserId.equals(currentUser)) {
+                        Message msg = new Message(Message.Type.IMAGE, currentUser, role, null, dataToSend, fileName, isEncrypted);
+                        msg.setGroupId(targetUserId);
+                        conversations.computeIfAbsent(targetUserId, k -> new ArrayList<>()).add(msg);
+                        conversationNames.putIfAbsent(targetUserId, selectedUserName);
+                        if (!conversationListModel.contains(selectedUserName)) {
+                            conversationListModel.addElement(selectedUserName);
+                        }
+                        displayConversation(targetUserId);
+                        chatClient.sendMessage(msg);
+                        JOptionPane.showMessageDialog(this, "Ảnh đã được gửi thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Không thể tự nhắn với chính mình!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    }
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, "Lỗi khi chụp hoặc gửi ảnh: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    ex.printStackTrace();
+                }
+            });
+
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Lỗi khi mở webcam: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            ex.printStackTrace();
         }
     }
 
@@ -510,82 +647,13 @@ public class ChatGUI extends JFrame {
             }
             String senderLabel = msg.getSender().equals(currentUser) ? "Bạn" : conversationNames.getOrDefault(msg.getSender(), msg.getSender());
             String time = msg.getTimestamp() != null ? msg.getTimestamp().format(DateTimeFormatter.ofPattern("HH:mm:ss")) : LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-            String conversationPrefix = conversationId.startsWith("group_") ? "[" + conversationNames.getOrDefault(conversationId, conversationId) + "] " : "";
+            String conversationPrefix = "";
             String styledHtml;
 
+            boolean isSentByMe = msg.getSender().equals(currentUser);
+            String messageClass = isSentByMe ? "message-right" : "message-left";
+
             switch (msg.getType()) {
-                case GROUP_MESSAGE:
-                    Message.Type originalType = msg.getOriginalType() != null ? msg.getOriginalType() : Message.Type.TEXT;
-                    switch (originalType) {
-                        case AUDIO:
-                            String audioId = "audio_" + System.currentTimeMillis();
-                            String stopId = "stop_audio_" + System.currentTimeMillis();
-                            encryptedImageMap.put(audioId, msg.getData());
-                            if (msg.isEncrypted()) {
-                                String unlockAudioId = "unlock_audio_" + System.currentTimeMillis();
-                                encryptedImageMap.put(unlockAudioId, msg.getData());
-                                styledHtml = "<div>" + conversationPrefix +
-                                        "[" + time + "] <b>" + senderLabel + " đã gửi âm thanh riêng tư 🔒:</b> " +
-                                        "<a href=\"" + unlockAudioId + "\">Mở âm thanh</a></div>";
-                            } else {
-                                styledHtml = "<div>" + conversationPrefix +
-                                        "[" + time + "] <b>" + senderLabel + ":</b> đã gửi âm thanh " +
-                                        "<a href=\"" + audioId + "\">▶ Phát</a> | <a href=\"" + stopId + "\">⏹ Dừng</a></div>";
-                            }
-                            insertHtmlToPane(styledHtml);
-                            break;
-                        case TEXT:
-                            String content = msg.getContent();
-                            String decrypted = decryptContent(content, msg.isEncrypted());
-                            styledHtml = "<div>" + conversationPrefix +
-                                    "[" + time + "] <b>" + senderLabel + ":</b> " + (decrypted != null ? decrypted : "[Nội dung trống]") + "</div>";
-                            insertHtmlToPane(styledHtml);
-                            break;
-                        case ICON:
-                            styledHtml = "<div>" + conversationPrefix +
-                                    "[" + time + "] <b>" + senderLabel + ":</b> " + msg.getContent() + "</div>";
-                            insertHtmlToPane(styledHtml);
-                            break;
-                        case IMAGE:
-                            String imageId = "image_" + System.currentTimeMillis();
-                            String unlockImageId = "unlock_image_" + System.currentTimeMillis();
-                            encryptedImageMap.put(imageId, msg.getData());
-                            if (msg.isEncrypted()) {
-                                String messageId = msg.getHiddenMessageId();
-                                String passwordId = msg.getHiddenPasswordId();
-                                if (messageId != null && passwordId != null) {
-                                    encryptedImageMap.put(unlockImageId + "_message", messageId.getBytes());
-                                    encryptedImageMap.put(unlockImageId + "_password", passwordId.getBytes());
-                                    styledHtml = "<div>" + conversationPrefix +
-                                            "[" + time + "] <b>" + senderLabel + " đã gửi ảnh có thông điệp 📜</b> " +
-                                            "<a href=\"" + unlockImageId + "\">Mở ảnh</a></div>";
-                                } else {
-                                    encryptedImageMap.put(unlockImageId, msg.getData());
-                                    styledHtml = "<div>" + conversationPrefix +
-                                            "[" + time + "] <b>" + senderLabel + " đã gửi ảnh riêng tư 🔒</b> " +
-                                            "<a href=\"" + unlockImageId + "\">Mở ảnh</a></div>";
-                                }
-                                insertHtmlToPane(styledHtml);
-                            } else {
-                                showImageInPane(senderLabel, msg.getData(), true);
-                            }
-                            break;
-                        case FILE:
-                            String fileId = "file_" + System.currentTimeMillis();
-                            encryptedImageMap.put(fileId, msg.getData());
-                            if (msg.isEncrypted()) {
-                                String unlockFileId = "unlock_file_" + System.currentTimeMillis();
-                                encryptedImageMap.put(unlockFileId, msg.getData());
-                                styledHtml = "<div>" + conversationPrefix +
-                                        "[" + time + "] <b>" + senderLabel + " đã gửi file riêng tư 🔒:</b> " + msg.getFileName() + " <a href=\"" + unlockFileId + "\">Mở file</a></div>";
-                            } else {
-                                styledHtml = "<div>" + conversationPrefix +
-                                        "[" + time + "] <b>" + senderLabel + ":</b> đã gửi file " + msg.getFileName() + " <a href=\"" + fileId + "\">Tải xuống</a></div>";
-                            }
-                            insertHtmlToPane(styledHtml);
-                            break;
-                    }
-                    break;
                 case AUDIO:
                     String audioId = "audio_" + System.currentTimeMillis();
                     String stopId = "stop_audio_" + System.currentTimeMillis();
@@ -593,12 +661,12 @@ public class ChatGUI extends JFrame {
                     if (msg.isEncrypted()) {
                         String unlockAudioId = "unlock_audio_" + System.currentTimeMillis();
                         encryptedImageMap.put(unlockAudioId, msg.getData());
-                        styledHtml = "<div>" + conversationPrefix +
-                                "[" + time + "] <b>" + senderLabel + " đã gửi âm thanh riêng tư 🔒:</b> " +
+                        styledHtml = "<div class='" + messageClass + "'>" + conversationPrefix +
+                                "<span class='time'>[" + time + "]</span> <b>" + senderLabel + " đã gửi âm thanh riêng tư 🔒:</b> " +
                                 "<a href=\"" + unlockAudioId + "\">Mở âm thanh</a></div>";
                     } else {
-                        styledHtml = "<div>" + conversationPrefix +
-                                "[" + time + "] <b>" + senderLabel + ":</b> đã gửi âm thanh " +
+                        styledHtml = "<div class='" + messageClass + "'>" + conversationPrefix +
+                                "<span class='time'>[" + time + "]</span> <b>" + senderLabel + ":</b> đã gửi âm thanh " +
                                 "<a href=\"" + audioId + "\">▶ Phát</a> | <a href=\"" + stopId + "\">⏹ Dừng</a></div>";
                     }
                     insertHtmlToPane(styledHtml);
@@ -606,13 +674,13 @@ public class ChatGUI extends JFrame {
                 case TEXT:
                     String content = msg.getContent();
                     String decrypted = decryptContent(content, msg.isEncrypted());
-                    styledHtml = "<div>" + conversationPrefix +
-                            "[" + time + "] <b>" + senderLabel + ":</b> " + (decrypted != null ? decrypted : "[Nội dung trống]") + "</div>";
+                    styledHtml = "<div class='" + messageClass + "'>" + conversationPrefix +
+                            "<span class='time'>[" + time + "]</span> <b>" + senderLabel + ":</b> " + (decrypted != null ? decrypted : "[Nội dung trống]") + "</div>";
                     insertHtmlToPane(styledHtml);
                     break;
                 case ICON:
-                    styledHtml = "<div>" + conversationPrefix +
-                            "[" + time + "] <b>" + senderLabel + ":</b> " + msg.getContent() + "</div>";
+                    styledHtml = "<div class='" + messageClass + "'>" + conversationPrefix +
+                            "<span class='time'>[" + time + "]</span> <b>" + senderLabel + ":</b> " + msg.getContent() + "</div>";
                     insertHtmlToPane(styledHtml);
                     break;
                 case IMAGE:
@@ -625,18 +693,18 @@ public class ChatGUI extends JFrame {
                         if (messageId != null && passwordId != null) {
                             encryptedImageMap.put(unlockImageId + "_message", messageId.getBytes());
                             encryptedImageMap.put(unlockImageId + "_password", passwordId.getBytes());
-                            styledHtml = "<div>" + conversationPrefix +
-                                    "[" + time + "] <b>" + senderLabel + " đã gửi ảnh có thông điệp 📜</b> " +
+                            styledHtml = "<div class='" + messageClass + "'>" + conversationPrefix +
+                                    "<span class='time'>[" + time + "]</span> <b>" + senderLabel + " đã gửi ảnh có thông điệp 📜</b> " +
                                     "<a href=\"" + unlockImageId + "\">Mở ảnh</a></div>";
                         } else {
                             encryptedImageMap.put(unlockImageId, msg.getData());
-                            styledHtml = "<div>" + conversationPrefix +
-                                    "[" + time + "] <b>" + senderLabel + " đã gửi ảnh riêng tư 🔒</b> " +
+                            styledHtml = "<div class='" + messageClass + "'>" + conversationPrefix +
+                                    "<span class='time'>[" + time + "]</span> <b>" + senderLabel + " đã gửi ảnh riêng tư 🔒</b> " +
                                     "<a href=\"" + unlockImageId + "\">Mở ảnh</a></div>";
                         }
                         insertHtmlToPane(styledHtml);
                     } else {
-                        showImageInPane(senderLabel, msg.getData(), true);
+                        showImageInPane(senderLabel, msg.getData(), true, isSentByMe);
                     }
                     break;
                 case FILE:
@@ -645,11 +713,11 @@ public class ChatGUI extends JFrame {
                     if (msg.isEncrypted()) {
                         String unlockFileId = "unlock_file_" + System.currentTimeMillis();
                         encryptedImageMap.put(unlockFileId, msg.getData());
-                        styledHtml = "<div>" + conversationPrefix +
-                                "[" + time + "] <b>" + senderLabel + " đã gửi file riêng tư 🔒:</b> " + msg.getFileName() + " <a href=\"" + unlockFileId + "\">Mở file</a></div>";
+                        styledHtml = "<div class='" + messageClass + "'>" + conversationPrefix +
+                                "<span class='time'>[" + time + "]</span> <b>" + senderLabel + " đã gửi file riêng tư 🔒:</b> " + msg.getFileName() + " <a href=\"" + unlockFileId + "\">Mở file</a></div>";
                     } else {
-                        styledHtml = "<div>" + conversationPrefix +
-                                "[" + time + "] <b>" + senderLabel + ":</b> đã gửi file " + msg.getFileName() + " <a href=\"" + fileId + "\">Tải xuống</a></div>";
+                        styledHtml = "<div class='" + messageClass + "'>" + conversationPrefix +
+                                "<span class='time'>[" + time + "]</span> <b>" + senderLabel + ":</b> đã gửi file " + msg.getFileName() + " <a href=\"" + fileId + "\">Tải xuống</a></div>";
                     }
                     insertHtmlToPane(styledHtml);
                     break;
@@ -677,66 +745,44 @@ public class ChatGUI extends JFrame {
         String conversationId;
         String conversationName;
 
-        if (msg.getType() == Message.Type.CREATE_GROUP) {
-            String groupInfo = msg.getContent();
-            String[] parts = groupInfo.split(",");
-            if (parts.length < 2) return;
-
-            String groupName = parts[0];
-            String[] members = Arrays.copyOfRange(parts, 1, parts.length);
-            if (!Arrays.asList(members).contains(currentUser)) return;
-
-            conversationId = msg.getGroupId();
-            if (conversationNames.containsKey(conversationId)) return;
-
-            conversationName = groupName;
-            conversations.putIfAbsent(conversationId, new ArrayList<>());
-            conversationNames.put(conversationId, conversationName);
-            displayNameToId.put(conversationName, conversationId);
-            if (!conversationListModel.contains(conversationName)) {
-                conversationListModel.addElement(conversationName);
+        if (msg.getType() == Message.Type.TEXT && msg.getContent() != null) {
+            if (msg.getContent().startsWith("ERROR")) {
+                JOptionPane.showMessageDialog(this, msg.getContent().substring(6), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                return;
             }
-            conversationList.setSelectedValue(conversationName, true);
-            return;
+            // Bỏ qua tin nhắn SENT: để tránh hiển thị trùng lặp
+            if (msg.getContent().startsWith("SENT:")) {
+                return; // Không hiển thị tin nhắn echo
+            }
         }
 
-        if (msg.getType() == Message.Type.TEXT && msg.getContent() != null && msg.getContent().startsWith("USER_LIST")) {
-            String[] users = msg.getContent().substring(10).split(",");
-            updateUserList(users);
-            return;
-        }
-
-        if (msg.getType() == Message.Type.GROUP_MESSAGE || (msg.getGroupId() != null && msg.getGroupId().startsWith("group_"))) {
+        if (msg.getSender().equals(currentUser) && msg.getContent() != null && msg.getContent().startsWith("SENT:")) {
             conversationId = msg.getGroupId();
-            conversationName = conversationNames.getOrDefault(conversationId, conversationId);
-        } else {
-            String content = msg.getContent();
-            String otherUser;
-            if (content != null && content.startsWith("PRIVATE")) {
-                otherUser = msg.getSender();
-            } else if (content != null && content.startsWith("@")) {
-                int colonIndex = content.indexOf(':');
-                if (colonIndex > 1) {
-                    otherUser = content.substring(1, colonIndex).trim();
-                } else {
-                    otherUser = msg.getSender();
-                }
+            if (conversationId != null) {
+                TaiKhoan tk = taiKhoanBUS.getTaiKhoanByMaNV(conversationId);
+                conversationName = tk != null ? tk.getTen() + " (" + tk.getQuyen() + ")" : conversationId;
             } else {
-                otherUser = msg.getSender();
+                conversationId = currentUser;
+                conversationName = "Bạn";
             }
+        } else {
+            String otherUser = msg.getSender();
             TaiKhoan tk = taiKhoanBUS.getTaiKhoanByMaNV(otherUser);
             conversationId = tk != null ? String.valueOf(tk.getMaNhanVien()) : otherUser;
-            conversationName = tk != null ? tk.getTen() : otherUser;
+            conversationName = tk != null ? tk.getTen() + " (" + tk.getQuyen() + ")" : otherUser;
         }
 
         conversations.computeIfAbsent(conversationId, k -> new ArrayList<>()).add(msg);
         conversationNames.putIfAbsent(conversationId, conversationName);
-        displayNameToId.putIfAbsent(conversationName, conversationId);
-        if (!conversationListModel.contains(conversationName)) {
-            conversationListModel.addElement(conversationName);
+        if (!displayNameToId.containsKey(conversationName)) {
+            displayNameToId.put(conversationName, conversationId);
+            if (!conversationListModel.contains(conversationName)) {
+                conversationListModel.addElement(conversationName);
+            }
         }
 
-        if (currentConversation != null && currentConversation.equals(conversationId)) {
+        if (currentConversation != null && (currentConversation.equals(conversationId) || 
+                (msg.getContent() != null && msg.getContent().startsWith("SENT:") && currentConversation.equals(msg.getGroupId())))) {
             displayConversation(conversationId);
         }
     }
@@ -753,7 +799,7 @@ public class ChatGUI extends JFrame {
             if (storedMessage != null && storedPassword != null) {
                 String senderLabel = msg.getSender().equals(currentUser) ? "Bạn" : conversationNames.get(currentConversation);
                 String time = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
-                String conversationPrefix = currentConversation.startsWith("group_") ? "[" + conversationNames.get(currentConversation) + "] " : "";
+                String conversationPrefix = currentConversation != null && currentConversation.startsWith("group_") ? "[" + conversationNames.get(currentConversation) + "] " : "";
                 String styledHtml = "<div style='margin:2px 0; line-height:1.2;'>" + conversationPrefix +
                         "[" + time + "] <b>" + senderLabel + " đã gửi một ảnh có chứa thông điệp 📜</b> " +
                         "<a href=\"" + unlockImageId + "\">Mở ảnh</a></div>";
@@ -780,15 +826,28 @@ public class ChatGUI extends JFrame {
         }
 
         try {
+            // Giải mã bằng XOR trước (nếu chỉ mã hóa XOR)
+            byte[] decryptedData = XORUtils.xorEncrypt(imgData, passwordInput.charAt(0));
+            
+            // Kiểm tra xem ảnh đã được giải mã thành công bằng cách thử đọc nó
+            BufferedImage image = ImageIO.read(new ByteArrayInputStream(decryptedData));
+            if (image != null) {
+                // Nếu đọc thành công, hiển thị ảnh
+                showImageInPane("", decryptedData, true, false);
+                JOptionPane.showMessageDialog(this, "Ảnh đã được giải mã và hiển thị!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+
+            // Nếu không phải chỉ mã hóa XOR, thử trích xuất thông điệp giấu tin
             String hiddenMessage = Steganography.extractMessage(imgData, passwordInput);
             if (hiddenMessage != null && !hiddenMessage.isEmpty()) {
                 JOptionPane.showMessageDialog(this, "Thông điệp: " + hiddenMessage, "Thông điệp giấu tin", JOptionPane.INFORMATION_MESSAGE);
-                showImageInPane("", imgData, true); // Hiển thị ảnh gốc đã giấu tin
+                showImageInPane("", imgData, true, false); // Hiển thị ảnh gốc (vẫn mã hóa nếu không giải mã đúng)
             } else {
                 JOptionPane.showMessageDialog(this, "Mật khẩu không đúng hoặc không có thông điệp!", "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
         } catch (IOException e) {
-            JOptionPane.showMessageDialog(this, "Lỗi khi trích xuất thông điệp: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Lỗi khi trích xuất hoặc giải mã: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -867,7 +926,7 @@ public class ChatGUI extends JFrame {
         }
     }
 
-    private void showImageInPane(String senderLabel, byte[] imgBytes, boolean addSaveLink) {
+    private void showImageInPane(String senderLabel, byte[] imgBytes, boolean addSaveLink, boolean isSentByMe) {
         try {
             String time = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss"));
             String imageId = "image_" + System.currentTimeMillis();
@@ -883,9 +942,11 @@ public class ChatGUI extends JFrame {
             String imagePath = tempFile.toURI().toURL().toString();
             String saveLink = addSaveLink ? " <a href='" + saveId + "'>Lưu</a>" : "";
             String conversationPrefix = currentConversation != null && currentConversation.startsWith("group_") ? "[" + conversationNames.get(currentConversation) + "] " : "";
+            String messageClass = isSentByMe ? "message-right" : "message-left";
 
-            String styledHtml = "<div style='margin:2px 0; line-height:1.2;'>" + conversationPrefix + "[" + time + "] <b>" + senderLabel + " đã gửi ảnh:</b><br>"
-                    + "<img src='" + imagePath + "' width='150' id='" + imageId + "'/>" + saveLink + "</div>";
+            String styledHtml = "<div class='" + messageClass + "' style='margin:2px 0; line-height:1.2;'>" + conversationPrefix +
+                    "<span class='time'>[" + time + "]</span> <b>" + senderLabel + " đã gửi ảnh:</b><br>" +
+                    "<img src='" + imagePath + "' width='150' id='" + imageId + "'/>" + saveLink + "</div>";
             insertHtmlToPane(styledHtml);
             tempFile.deleteOnExit();
         } catch (Exception e) {
@@ -971,7 +1032,7 @@ public class ChatGUI extends JFrame {
             });
             recordingThread.start();
             isRecording = true;
-            recordBtn.setText("Dừng ghi âm");
+            recordBtn.setText("⏹️"); // Stop recording icon
         } catch (Exception e) {
             isRecording = false;
             JOptionPane.showMessageDialog(this, "Lỗi khi khởi động ghi âm: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
@@ -993,7 +1054,7 @@ public class ChatGUI extends JFrame {
             }
             recordingThread = null;
         }
-        recordBtn.setText("Ghi âm");
+        recordBtn.setText("🎙️"); // Record icon
     }
 
     private void sendRecordedAudio(byte[] audioData) throws IOException {
@@ -1113,7 +1174,8 @@ public class ChatGUI extends JFrame {
 
     @Override
     public void dispose() {
-        chatClient.disconnect();
-        super.dispose();
+        isRunning = false; // Dừng luồng nhận tin nhắn
+        chatClient.disconnect(); // Đóng kết nối client
+        super.dispose(); // Đóng cửa sổ
     }
 }

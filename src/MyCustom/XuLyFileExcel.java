@@ -10,7 +10,7 @@ import javax.swing.table.TableModel;
 import java.io.*;
 import java.util.Vector;
 
-import org.apache.poi.sl.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
